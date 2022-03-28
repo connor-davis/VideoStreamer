@@ -176,7 +176,7 @@ io.on('connection', (socket) => {
     }
 
     let videoSize = fs.statSync(video.videoPath).size;
-    let CHUNK_SIZE = 10 ** 6; // 1MB
+    let CHUNK_SIZE = 5 ** 6; // 1MB
     let start = Number(range.replace(/\D/g, ''));
     let end = Math.min(start + CHUNK_SIZE, videoSize - 1);
     let contentLength = end - start + 1;
