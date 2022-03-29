@@ -68,6 +68,8 @@ io.on('connection', (socket) => {
 
   let sessionId = v4();
 
+  socket.sessionId = sessionId;
+
   socket.on('*', function (event, data) {
     console.log(event);
     console.log(data);
@@ -92,19 +94,21 @@ io.on('connection', (socket) => {
     });
   });
 
-  socket.on('joinSession', (sessionId) => {
-    console.log('A user joined session ' + sessionId);
+  socket.on('joinSession', (joinSessionId) => {
+    console.log('A user joined session ' + joinSessionId);
 
-    let session = sessions[sessionId];
+    let session = sessions[joinSessionId];
 
-    io.emit(sessionId, {
+    socket.sessionId = joinSessionId;
+
+    io.emit(joinSessionId, {
       event: 'joined-session',
       sessionId: session.sessionId,
       videoId: session.videoId,
     });
   });
 
-  socket.on(sessionId, (packet) => {
+  socket.on(socket.sessionId, (packet) => {
     fs.writeFileSync(
       path.join(__dirname, 'logs', sessionId + '.txt'),
       JSON.stringify({ sessionId: sessionId, packet: packet }, 1),
@@ -112,6 +116,8 @@ io.on('connection', (socket) => {
         encoding: 'utf-8',
       }
     );
+
+    console.log(packet);
 
     switch (packet.event) {
       case 'play-video':
@@ -130,6 +136,13 @@ io.on('connection', (socket) => {
 
       case 'time-changed':
         console.log(sessionId + "'s time changed.");
+
+        io.emit(sessionId, packet);
+
+        break;
+
+      case 'message':
+        console.log(sessionId + ' has a new message.');
 
         io.emit(sessionId, packet);
 
@@ -176,7 +189,7 @@ io.on('connection', (socket) => {
     }
 
     let videoSize = fs.statSync(video.videoPath).size;
-    let CHUNK_SIZE = 2 * (10 ** 6); // 1MB
+    let CHUNK_SIZE = 2 * 10 ** 6; // 1MB
     let start = Number(range.replace(/\D/g, ''));
     let end = Math.min(start + CHUNK_SIZE, videoSize - 1);
     let contentLength = end - start + 1;
